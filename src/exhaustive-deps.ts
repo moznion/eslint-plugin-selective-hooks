@@ -15,8 +15,12 @@ if (!originalRule) {
 }
 
 function getSourceCode(context: Rule.RuleContext): SourceCode {
-  // ESLint 9 exposes `context.sourceCode`; older versions use getSourceCode().
-  return (context as unknown as { sourceCode?: SourceCode }).sourceCode ?? context.getSourceCode();
+  // ESLint 8.40+ exposes `context.sourceCode`; older versions use getSourceCode().
+  const ctx = context as unknown as {
+    sourceCode?: SourceCode;
+    getSourceCode?: () => SourceCode;
+  };
+  return ctx.sourceCode ?? ctx.getSourceCode!();
 }
 
 /**

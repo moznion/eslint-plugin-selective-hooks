@@ -2,7 +2,7 @@
  * Parsing and rewriting of `react-hooks/exhaustive-deps` report messages.
  *
  * These helpers depend on the exact message wording emitted by
- * `eslint-plugin-react-hooks@4.6.0`. The shapes we target are:
+ * `eslint-plugin-react-hooks`. The shapes we target are:
  *
  *   React Hook useEffect has a missing dependency: 'retry'. Either include it or remove the dependency array.
  *   React Hook useEffect has missing dependencies: 'pendingIds' and 'retry'. Either include them or remove the dependency array.

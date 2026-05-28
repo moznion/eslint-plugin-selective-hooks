@@ -46,7 +46,7 @@ function wrap(reactHooksPlugin: ESLint.Plugin): ESLint.Plugin {
 const plugin = {
   meta: {
     name: "@moznion/eslint-plugin-selective-hooks",
-    version: "4.6.0",
+    version: "7.1.1",
   },
   rules,
   configs: {} as Record<string, unknown>,

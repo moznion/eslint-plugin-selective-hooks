@@ -10,10 +10,12 @@ RuleTester.it = it;
 RuleTester.itOnly = it.only;
 
 const ruleTester = new RuleTester({
-  parserOptions: {
+  languageOptions: {
     ecmaVersion: 2020,
     sourceType: "module",
-    ecmaFeatures: { jsx: true },
+    parserOptions: {
+      ecmaFeatures: { jsx: true },
+    },
   },
 });
 
@@ -45,12 +47,14 @@ ruleTester.run("@moznion/selective-hooks/exhaustive-deps", exhaustiveDeps, {
     // Full disable via the standard ESLint directive. Note: like the upstream
     // rule, the report lands on the dependency-array node, so the disable
     // comment must sit directly above the `}, [])` line (not above useEffect).
+    // RuleTester registers the rule under a `rule-to-test/` prefix internally,
+    // so the disable comment must use that id.
     {
       code: `
         function C({ retry, pendingIds }) {
           useEffect(() => {
             retry(pendingIds);
-          // eslint-disable-next-line @moznion/selective-hooks/exhaustive-deps
+          // eslint-disable-next-line rule-to-test/@moznion/selective-hooks/exhaustive-deps
           }, []);
         }
       `,
@@ -83,6 +87,7 @@ ruleTester.run("@moznion/selective-hooks/exhaustive-deps", exhaustiveDeps, {
         {
           message:
             "React Hook useEffect has missing dependencies: 'pendingIds' and 'retry'. Either include them or remove the dependency array. If 'retry' changes too often, find the parent component that defines it and wrap that definition in useCallback.",
+          suggestions: 1,
         },
       ],
     },
@@ -119,6 +124,7 @@ ruleTester.run("@moznion/selective-hooks/exhaustive-deps", exhaustiveDeps, {
         {
           message:
             "React Hook useEffect has missing dependencies: 'pendingIds' and 'retry'. Either include them or remove the dependency array. If 'retry' changes too often, find the parent component that defines it and wrap that definition in useCallback.",
+          suggestions: 1,
         },
       ],
     },
@@ -138,6 +144,7 @@ ruleTester.run("@moznion/selective-hooks/exhaustive-deps", exhaustiveDeps, {
         {
           message:
             "React Hook useEffect has missing dependencies: 'pendingIds' and 'retry'. Either include them or remove the dependency array. If 'retry' changes too often, find the parent component that defines it and wrap that definition in useCallback.",
+          suggestions: 1,
         },
       ],
     },
@@ -156,6 +163,7 @@ ruleTester.run("@moznion/selective-hooks/exhaustive-deps", exhaustiveDeps, {
         {
           message:
             "React Hook useEffect has missing dependencies: 'pendingIds' and 'retry'. Either include them or remove the dependency array. If 'retry' changes too often, find the parent component that defines it and wrap that definition in useCallback.",
+          suggestions: 1,
         },
       ],
     },

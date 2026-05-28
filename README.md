@@ -48,16 +48,12 @@ npm install --save-dev @moznion/eslint-plugin-selective-hooks
 ```
 
 This plugin wraps `eslint-plugin-react-hooks` and declares it (along with
-`eslint`) as a **peer dependency** — it does not bundle its own copy. Most
+`eslint`) as a peer dependency — it does not bundle its own copy. Most
 projects already have it; if not, install a matching version:
 
 ```sh
-npm install --save-dev eslint-plugin-react-hooks@^4.6.0
+npm install --save-dev eslint-plugin-react-hooks
 ```
-
-> **Compatibility:** requires `eslint-plugin-react-hooks@4.6.x` and ESLint
-> 7–8. The rule parses the upstream rule's 4.6.x message format, so newer
-> react-hooks (5+) and ESLint 9+ are not supported.
 
 ## Usage (flat config)
 
@@ -191,7 +187,7 @@ The rule wraps the original `react-hooks/exhaustive-deps`:
    otherwise the message is rewritten to list only the remaining dependencies.
 
 Because step 2 parses the upstream message text, this plugin is pinned to a
-specific upstream version (`4.6.0`). This is a known piece of technical debt;
+specific upstream version. This is a known piece of technical debt;
 future work may fork the upstream rule or propose an internal API upstream.
 
 ## Scope
