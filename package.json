@@ -1,0 +1,55 @@
+{
+  "name": "@moznion/eslint-plugin-selective-hooks",
+  "version": "4.6.0",
+  "packageManager": "pnpm@10.28.1",
+  "description": "Extends react-hooks/exhaustive-deps to allow fine-grained, per-dependency exceptions instead of disabling the whole rule.",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "react",
+    "react-hooks",
+    "exhaustive-deps"
+  ],
+  "license": "MIT",
+  "author": "moznion",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moznion/eslint-plugin-selective-hooks.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm test",
+    "prepublishOnly": "pnpm run build"
+  },
+  "peerDependencies": {
+    "eslint": "^7.0.0 || ^8.0.0",
+    "eslint-plugin-react-hooks": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/eslint": "8.56.12",
+    "@types/estree": "1.0.9",
+    "@types/node": "25.9.1",
+    "eslint": "8.57.1",
+    "eslint-plugin-react-hooks": "4.6.0",
+    "oxfmt": "0.52.0",
+    "oxlint": "1.67.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.7"
+  }
+}
