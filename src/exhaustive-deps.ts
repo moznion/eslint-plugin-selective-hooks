@@ -3,7 +3,7 @@ import type { Node } from "estree";
 import reactHooks from "eslint-plugin-react-hooks";
 
 import { getEnclosingStatement, readExceptedDeps } from "./directive";
-import { extractMissingDeps, rewriteMissingDepsMessage } from "./message";
+import { extractDepClause, rewriteDepClauseMessage } from "./message";
 
 const originalRule = reactHooks.rules["exhaustive-deps"];
 
@@ -34,9 +34,9 @@ function applyExceptions(
     return descriptor;
   }
 
-  const missingDeps = extractMissingDeps(message);
-  if (missingDeps.length === 0) {
-    // Not a missing-dependency report (e.g. unnecessary/duplicate deps,
+  const clause = extractDepClause(message);
+  if (!clause) {
+    // Not a missing- or unnecessary-dependency report (e.g. duplicate deps,
     // ref-cleanup advice). Leave it untouched.
     return descriptor;
   }
@@ -52,20 +52,20 @@ function applyExceptions(
     return descriptor;
   }
 
-  const remainingDeps = missingDeps.filter((dep) => !excepted.has(dep));
+  const remainingDeps = clause.deps.filter((dep) => !excepted.has(dep));
 
-  // The directive matched none of the actual missing deps: behave exactly like
-  // the upstream rule, preserving its suggestion/fix.
-  if (remainingDeps.length === missingDeps.length) {
+  // The directive matched none of the actual reported deps: behave exactly
+  // like the upstream rule, preserving its suggestion/fix.
+  if (remainingDeps.length === clause.deps.length) {
     return descriptor;
   }
 
-  // Every missing dep was excepted: suppress the report.
+  // Every reported dep was excepted: suppress the report.
   if (remainingDeps.length === 0) {
     return null;
   }
 
-  const rewritten = rewriteMissingDepsMessage(message, remainingDeps);
+  const rewritten = rewriteDepClauseMessage(message, clause.kind, remainingDeps);
   if (rewritten === null) {
     return descriptor;
   }

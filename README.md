@@ -1,11 +1,11 @@
 # eslint-plugin-selective-hooks
 
 `eslint-plugin-selective-hooks` extends [`react-hooks/exhaustive-deps`](https://www.npmjs.com/package/eslint-plugin-react-hooks)
-by allowing fine-grained exceptions for specific missing dependencies,
-instead of disabling the whole rule.
+by allowing fine-grained exceptions for specific missing or unnecessary
+dependencies, instead of disabling the whole rule.
 
-Instead of disabling the entire rule and silently hiding *every* missing
-dependency:
+Instead of disabling the entire rule and silently hiding every dependency
+issue:
 
 ```ts
 // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -25,7 +25,19 @@ useEffect(() => {
 ```
 
 In this example only `pendingIds` is ignored. Other missing dependencies (here
-`retry`) are still reported.
+`retry`) are still reported. The same directive also excepts unnecessary
+dependencies reported by the upstream rule (typically for `useCallback` /
+`useMemo`):
+
+```ts
+// exhaustive-deps-except-next-line keepAlive
+const cb = useCallback(() => {
+  return doWork(a);
+}, [a, keepAlive]);
+```
+
+Here `keepAlive` is in the array but unused inside the callback — the
+upstream rule would flag it as unnecessary, and the directive excuses it.
 
 ## Why
 
@@ -48,16 +60,12 @@ npm install --save-dev @moznion/eslint-plugin-selective-hooks
 ```
 
 This plugin wraps `eslint-plugin-react-hooks` and declares it (along with
-`eslint`) as a **peer dependency** — it does not bundle its own copy. Most
+`eslint`) as a peer dependency — it does not bundle its own copy. Most
 projects already have it; if not, install a matching version:
 
 ```sh
-npm install --save-dev eslint-plugin-react-hooks@^4.6.0
+npm install --save-dev eslint-plugin-react-hooks
 ```
-
-> **Compatibility:** requires `eslint-plugin-react-hooks@4.6.x` and ESLint
-> 7–8. The rule parses the upstream rule's 4.6.x message format, so newer
-> react-hooks (5+) and ESLint 9+ are not supported.
 
 ## Usage (flat config)
 
@@ -137,23 +145,28 @@ export default [
 ```
 
 Place it on the line directly above the hook statement. The listed
-dependencies are excluded from the missing-dependency report; everything else
-is still reported.
+dependencies are excluded from the upstream dependency report (whether it's
+a missing or unnecessary dependency); everything else is still reported.
 
 | Code | Result |
 | --- | --- |
-| `useEffect(() => { retry(pendingIds); }, [])` (no directive) | reports `pendingIds` and `retry` |
+| `useEffect(() => { retry(pendingIds); }, [])` (no directive) | reports `pendingIds` and `retry` as missing |
 | `// exhaustive-deps-except-next-line pendingIds` | reports `retry` only |
 | `// exhaustive-deps-except-next-line pendingIds retry` | nothing reported |
 | `// exhaustive-deps-except-next-line foo` (not actually missing) | reports `pendingIds` and `retry` (directive is a no-op) |
+| `useCallback(() => doWork(a), [a, keepAlive])` (no directive) | reports `keepAlive` as unnecessary |
+| `// exhaustive-deps-except-next-line keepAlive` | nothing reported |
 
 Notes:
 
+- The directive applies to both missing and unnecessary dependency
+  reports. (Duplicate-dependency reports from upstream are left untouched —
+  they are almost always real bugs, not intentional.)
 - The directive must be on the immediately preceding line. A blank line
   between the directive and the hook invalidates it.
 - When a partial exception is applied, the upstream autofix / suggestion is
   dropped, because re-adding the excepted dependency would defeat the point.
-  When the directive matches none of the actual missing dependencies, the
+  When the directive matches none of the actual reported dependencies, the
   upstream behavior (including the suggestion) is preserved unchanged.
 - Member expressions are matched by the name as the rule prints it, e.g.
   `props.foo` or (with optional chaining) `props?.foo`.
@@ -176,15 +189,15 @@ useEffect(() => {
 comment is `@moznion/selective-hooks/exhaustive-deps` instead.)
 
 (The `exhaustive-deps-except-next-line` directive, by contrast, is anchored to
-the hook *statement*, so it goes above `useEffect` as shown earlier.)
+the hook statement, so it goes above `useEffect` as shown earlier.)
 
 ## How it works
 
 The rule wraps the original `react-hooks/exhaustive-deps`:
 
 1. It delegates to the upstream rule, intercepting its `context.report` calls.
-2. For each missing-dependency report, it parses the dependency names out of
-   the report message.
+2. For each missing- or unnecessary-dependency report, it parses the kind
+   and the dependency names out of the report message.
 3. It reads the `exhaustive-deps-except-next-line` directive (if any) above the
    enclosing statement.
 4. Excepted dependencies are removed. If none remain, the report is suppressed;
@@ -202,13 +215,14 @@ Implemented:
   upstream `react-hooks/exhaustive-deps` name
 - `@moznion/selective-hooks/exhaustive-deps` as a standalone alternative
 - the `exhaustive-deps-except-next-line` directive
-- partial suppression of missing dependencies with message rewrite
+- partial suppression of missing and unnecessary dependencies with
+  message rewrite
 - dropping fix/suggestion when a selective exception is applied
 - flat config support
 
 Not (yet) implemented:
 
-- ignoring *unnecessary* (extra) dependencies
+- ignoring duplicate dependencies
 - a reason syntax (`-- explanation`)
 - unused-exception detection
 - suggestion rewriting (rather than removal)
