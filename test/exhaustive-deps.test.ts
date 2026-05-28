@@ -71,6 +71,32 @@ ruleTester.run("@moznion/selective-hooks/exhaustive-deps", exhaustiveDeps, {
         }
       `,
     },
+
+    // Single unnecessary dep excepted -> suppressed.
+    {
+      code: `
+        function C({ a, b }) {
+          // exhaustive-deps-except-next-line b
+          const cb = useCallback(() => {
+            return a;
+          }, [a, b]);
+          return cb;
+        }
+      `,
+    },
+
+    // All unnecessary deps excepted -> fully suppressed.
+    {
+      code: `
+        function C({ a, b, c }) {
+          // exhaustive-deps-except-next-line b c
+          const cb = useCallback(() => {
+            return a;
+          }, [a, b, c]);
+          return cb;
+        }
+      `,
+    },
   ],
 
   invalid: [
@@ -201,6 +227,83 @@ ruleTester.run("@moznion/selective-hooks/exhaustive-deps", exhaustiveDeps, {
         {
           message:
             "React Hook useMemo has a missing dependency: 'retry'. Either include it or remove the dependency array.",
+        },
+      ],
+    },
+
+    // No directive: unnecessary dep is reported (upstream behavior preserved).
+    {
+      code: `
+        function C({ a, b }) {
+          const cb = useCallback(() => {
+            return a;
+          }, [a, b]);
+          return cb;
+        }
+      `,
+      errors: [
+        {
+          message:
+            "React Hook useCallback has an unnecessary dependency: 'b'. Either exclude it or remove the dependency array.",
+          suggestions: 1,
+        },
+      ],
+    },
+
+    // Excepting an unnecessary dep that is not actually reported changes nothing.
+    {
+      code: `
+        function C({ a, b }) {
+          // exhaustive-deps-except-next-line foo
+          const cb = useCallback(() => {
+            return a;
+          }, [a, b]);
+          return cb;
+        }
+      `,
+      errors: [
+        {
+          message:
+            "React Hook useCallback has an unnecessary dependency: 'b'. Either exclude it or remove the dependency array.",
+          suggestions: 1,
+        },
+      ],
+    },
+
+    // Two unnecessary deps, one excepted -> rewritten to the remaining one.
+    {
+      code: `
+        function C({ a, b, c }) {
+          // exhaustive-deps-except-next-line b
+          const cb = useCallback(() => {
+            return a;
+          }, [a, b, c]);
+          return cb;
+        }
+      `,
+      errors: [
+        {
+          message:
+            "React Hook useCallback has an unnecessary dependency: 'c'. Either exclude it or remove the dependency array.",
+        },
+      ],
+    },
+
+    // Three unnecessary deps, one excepted -> remaining two reported.
+    {
+      code: `
+        function C({ a, b, c, d }) {
+          // exhaustive-deps-except-next-line b
+          const cb = useCallback(() => {
+            return a;
+          }, [a, b, c, d]);
+          return cb;
+        }
+      `,
+      errors: [
+        {
+          message:
+            "React Hook useCallback has unnecessary dependencies: 'c' and 'd'. Either exclude them or remove the dependency array.",
         },
       ],
     },

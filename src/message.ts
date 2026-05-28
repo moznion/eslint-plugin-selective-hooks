@@ -6,15 +6,32 @@
  *
  *   React Hook useEffect has a missing dependency: 'retry'. Either include it or remove the dependency array.
  *   React Hook useEffect has missing dependencies: 'pendingIds' and 'retry'. Either include them or remove the dependency array.
+ *   React Hook useCallback has an unnecessary dependency: 'foo'. Either exclude it or remove the dependency array.
+ *   React Hook useCallback has unnecessary dependencies: 'foo' and 'bar'. Either exclude them or remove the dependency array.
  *
- * A missing-dependency clause is always emitted first (before any unnecessary
- * or duplicate clause and before the optional trailing advice), so we only
- * need to look at the segment between `missing dependenc(y|ies):` and the
- * terminating `. Either `.
+ * Upstream emits at most one of `missing` / `unnecessary` / `duplicate` per
+ * report (the first non-empty one), so a message contains exactly one
+ * dependency clause for us to parse and, if needed, rewrite.
  */
 
-// Captures the dependency-list segment of a missing-dependency message.
-const MISSING_DEPS_PATTERN = /missing dependenc(?:y|ies): (.*?)\. Either /;
+export type DepClauseKind = "missing" | "unnecessary";
+
+interface ClauseConfig {
+  label: string;
+  fixVerb: string;
+  singlePrefix: string;
+}
+
+const CLAUSE_CONFIGS: Record<DepClauseKind, ClauseConfig> = {
+  missing: { label: "missing", fixVerb: "include", singlePrefix: "a" },
+  unnecessary: { label: "unnecessary", fixVerb: "exclude", singlePrefix: "an" },
+};
+
+// Captures the kind ("missing" / "unnecessary") and the dependency-list
+// segment of a single dependency clause. We deliberately leave the "duplicate"
+// kind out: duplicate deps are almost always a real mistake, not an
+// intentional exception.
+const CLAUSE_PATTERN = /(missing|unnecessary) dependenc(?:y|ies): (.*?)\. Either /;
 
 // Captures the hook source (e.g. `useEffect`, `React.useMemo`).
 const HOOK_SOURCE_PATTERN = /^React Hook (.+?) has /;
@@ -22,22 +39,29 @@ const HOOK_SOURCE_PATTERN = /^React Hook (.+?) has /;
 // Each dependency is rendered single-quoted, e.g. 'props.foo' or 'props?.foo'.
 const QUOTED_DEP_PATTERN = /'([^']*)'/g;
 
+export interface DepClause {
+  kind: DepClauseKind;
+  deps: string[];
+}
+
 /**
- * Extract the missing dependency names from a report message, in the order
- * (alphabetically sorted) that the upstream rule emits them. Returns an empty
- * array for any message that is not a missing-dependency report.
+ * Extract the dependency clause from a report message: the kind ("missing"
+ * or "unnecessary") and the dependency names in the (alphabetically sorted)
+ * order the upstream rule emits them. Returns `null` for any message that is
+ * not a missing- or unnecessary-dependency report.
  */
-export function extractMissingDeps(message: string): string[] {
-  const segment = message.match(MISSING_DEPS_PATTERN);
+export function extractDepClause(message: string): DepClause | null {
+  const segment = message.match(CLAUSE_PATTERN);
   if (!segment) {
-    return [];
+    return null;
   }
 
+  const kind = segment[1] as DepClauseKind;
   const deps: string[] = [];
-  for (const match of segment[1].matchAll(QUOTED_DEP_PATTERN)) {
+  for (const match of segment[2].matchAll(QUOTED_DEP_PATTERN)) {
     deps.push(match[1]);
   }
-  return deps;
+  return { kind, deps };
 }
 
 /** Replicates the upstream `joinEnglish` helper (Oxford-comma list). */
@@ -57,14 +81,15 @@ function joinEnglish(items: string[]): string {
 }
 
 /**
- * Rebuild a native-looking missing-dependency message for the subset of
+ * Rebuild a native-looking dependency-clause message for the subset of
  * dependencies that remain after exceptions are applied.
  *
  * Returns `null` when the hook source cannot be parsed, in which case the
  * caller should fall back to leaving the original message untouched.
  */
-export function rewriteMissingDepsMessage(
+export function rewriteDepClauseMessage(
   originalMessage: string,
+  kind: DepClauseKind,
   remainingDeps: string[],
 ): string | null {
   const hookMatch = originalMessage.match(HOOK_SOURCE_PATTERN);
@@ -73,12 +98,13 @@ export function rewriteMissingDepsMessage(
   }
 
   const hookSource = hookMatch[1];
+  const config = CLAUSE_CONFIGS[kind];
   const plural = remainingDeps.length > 1;
   const list = joinEnglish(remainingDeps.map((dep) => `'${dep}'`));
 
   return (
-    `React Hook ${hookSource} has ${plural ? "" : "a "}missing ` +
+    `React Hook ${hookSource} has ${plural ? "" : `${config.singlePrefix} `}${config.label} ` +
     `${plural ? "dependencies" : "dependency"}: ${list}. ` +
-    `Either include ${plural ? "them" : "it"} or remove the dependency array.`
+    `Either ${config.fixVerb} ${plural ? "them" : "it"} or remove the dependency array.`
   );
 }
